@@ -108,5 +108,10 @@ Lands BEFORE any real deletion command is exposed.
   advisory only, never pre-selected (design gate 2026-08-10).
 - gh/glab token discovery varies by version → degrade to `unknown` with a
   scan warning; never block the offline path.
-- OpenTUI native-core packaging per target → Phase 0 spike decides; failure
-  drops a target to npm/bunx-only.
+- OpenTUI native-core packaging per target → Phase 0 spike PASSED on
+  linux-x64 (2026-08-10): `@opentui/core` renderer compiles into a
+  `bun build --compile` binary and runs standalone (137MB glibc-dynamically-
+  linked ELF; runs without Bun installed; not musl/Alpine-compatible).
+  Remaining targets (mac x64/arm64, windows x64, linux arm64, baseline x64
+  flags) get compile-verified in the release workflow; runtime-verified on
+  CI runners where possible.
