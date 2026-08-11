@@ -185,7 +185,11 @@ describe("ledger §4.3", () => {
   });
 
   test("default data dir resolves to the platform data location", () => {
-    const dir = defaultDataDir({ HOME: "/tmp/fake-home", XDG_DATA_HOME: "/tmp/fake-data" });
+    // XDG paths are posix-style; force linux so the assertion holds on every OS.
+    const dir = defaultDataDir(
+      { HOME: "/tmp/fake-home", XDG_DATA_HOME: "/tmp/fake-data" },
+      "linux",
+    );
     expect(dir).toBe("/tmp/fake-data/git-reap");
     expect(ledgerPaths(dir).ledger).toContain("ledger.jsonl");
   });

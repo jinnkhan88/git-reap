@@ -35,8 +35,8 @@ export function ledgerPaths(dataDir) {
   return { ledger: join(dataDir, "ledger.jsonl"), lock: join(dataDir, "lock") };
 }
 
-export function defaultDataDir(env = process.env) {
-  return configPaths(env).dataDir;
+export function defaultDataDir(env = process.env, platform) {
+  return configPaths(env, platform).dataDir;
 }
 
 /** Short unique batch id (safe in ref paths: lowercase alnum + dash). */
