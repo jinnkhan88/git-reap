@@ -4,8 +4,14 @@ import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { BUILTIN_PROTECTED, configPaths, loadConfig } from "../src/config.js";
 
+// join that normalizes to forward slashes: loadConfig returns posix-style
+// paths when platform is forced, so expectations must match.
+const pjoin = (...parts) => join(...parts).replaceAll("\\", "/");
+
 function withTmp(fn) {
-  const dir = mkdtempSync(join(tmpdir(), "reap-cfg-"));
+  // Normalize so HOME-style env matches posix joins in the module under test.
+  const dir = join(tmpdir(), `reap-cfg-${Date.now()}-${Math.random().toString(36).slice(2)}`).replaceAll("\\", "/");
+  mkdirSync(dir, { recursive: true });
   try {
     return fn(dir);
   } finally {
@@ -67,7 +73,7 @@ describe("loadConfig", () => {
       expect(cfg.staleDays).toBe(14);
       expect(cfg.fetch).toBe(true);
       expect(cfg.protected).toEqual([...BUILTIN_PROTECTED, "hotfix/*"]);
-      expect(cfg.loadedFrom).toBe(join(cfgDir, "config.toml"));
+      expect(cfg.loadedFrom).toBe(pjoin(cfgDir, "config.toml"));
     });
   });
 

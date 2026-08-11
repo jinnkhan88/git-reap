@@ -260,7 +260,7 @@ describe("makeSandbox", () => {
     const { stdout: bare } = await git(["rev-parse", "--is-bare-repository"], { cwd: repos.bare });
     expect(bare.trim()).toBe("true");
     // Nested repo: ahead of upstream.
-    expect(repos.deep.startsWith(join(root, "nested"))).toBe(true);
+    expect(normPath(repos.deep).startsWith(normPath(join(root, "nested")))).toBe(true);
     expect(await upstreamTrack(repos.deep, "ahead-branch")).toBe("[ahead 1]");
   });
 });

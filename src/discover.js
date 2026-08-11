@@ -134,7 +134,9 @@ export async function discoverRepos(roots, { maxDepth = 6, crossFilesystems = fa
     return {
       repo: {
         key: commonDir,
-        path: main.includes("/.git/") ? c : main,
+        // git always reports paths with "/" separators (even on Windows),
+        // so normalize the walk-found fallback to match.
+        path: (main.includes("/.git/") ? c : main).replaceAll("\\", "/"),
         commonDir,
         worktrees,
         bare: false,
