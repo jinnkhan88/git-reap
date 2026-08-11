@@ -105,4 +105,38 @@ describe("loadConfig", () => {
       expect(cfg.roots).toEqual(["~/other"]);
     });
   });
+
+  test("reads per-repo default_branch + hosts section", async () => {
+    await withTmp(async (dir) => {
+      const cfgDir = join(dir, ".config", "git-reap");
+      mkdirSync(cfgDir, { recursive: true });
+      writeFileSync(
+        join(cfgDir, "config.toml"),
+        [
+          'default_branch = "trunk"',
+          'roots = ["~/projects"]',
+          'hosts.github.base_url = "https://api.github.com"',
+          'hosts.github.token = "gho_cfg"',
+          "",
+          '[repos."/home/u/projects/special"]',
+          'default_branch = "develop"',
+          'protected = ["experiment/*"]',
+          "",
+          '[repos."/home/u/projects/plain"]',
+          'default_branch = "trunk"',
+          "",
+        ].join("\n"),
+      );
+      const cfg = await loadConfig({ env: { HOME: dir }, platform: "linux" });
+      expect(cfg.defaultBranch).toBe("trunk");
+      expect(cfg.hosts.github.token).toBe("gho_cfg");
+      expect(cfg.hosts.github.base_url).toBe("https://api.github.com");
+      const { repoConfig } = await import("../src/config.js");
+      const special = repoConfig(cfg, "/home/u/projects/special");
+      expect(special.defaultBranch).toBe("develop");
+      expect(special.protected).toContain("experiment/*");
+      const plain = repoConfig(cfg, "/home/u/projects/plain");
+      expect(plain.defaultBranch).toBe("trunk");
+    });
+  });
 });

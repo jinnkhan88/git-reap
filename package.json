@@ -1,6 +1,6 @@
 {
   "name": "git-reap",
-  "version": "0.0.1",
+  "version": "1.0.0",
   "description": "Sweep every repo on your machine in one TUI — safely delete branches dead on GitHub/GitLab, with dry-run and undo.",
   "type": "module",
   "bin": {
@@ -13,10 +13,19 @@
     "reap": "bun run src/bin.js"
   },
   "license": "MIT",
+  "files": [
+    "src/",
+    "README.md",
+    "LICENSE"
+  ],
   "engines": {
     "bun": ">=1.1.0"
   },
   "devDependencies": {
     "@biomejs/biome": "^2.5.7"
+  },
+  "dependencies": {
+    "@opentui/core": "0.5.1",
+    "@opentui/react": "0.5.1"
   }
 }

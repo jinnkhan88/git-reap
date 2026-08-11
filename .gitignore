@@ -1,3 +1,9 @@
 node_modules/
 dist/
 spike/
+demo/*.mp4
+SPEC.md
+ROADMAP.md
+PRD.md
+PLAN.md
+docs/

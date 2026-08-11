@@ -1,4 +1,4 @@
-// Config loading per SPEC §5. Precedence: flag > env > config > default.
+// Config loading. Precedence: flag > env > config > default.
 
 import { existsSync } from "node:fs";
 import { homedir } from "node:os";
@@ -60,8 +60,30 @@ function normalize(raw) {
   if (raw.stale_days !== undefined) out.staleDays = Number(raw.stale_days);
   if (raw.fetch !== undefined) out.fetch = Boolean(raw.fetch);
   if (Array.isArray(raw.protected)) out.protected = raw.protected.map(String);
+  if (raw.default_branch !== undefined) out.defaultBranch = String(raw.default_branch);
+  // per-repo overrides: [repos."/abs/path"] default_branch / protected
+  if (raw.repos && typeof raw.repos === "object") {
+    out.repos = {};
+    for (const [path, cfg] of Object.entries(raw.repos)) {
+      const r = {};
+      if (cfg.default_branch !== undefined) r.defaultBranch = String(cfg.default_branch);
+      if (Array.isArray(cfg.protected)) r.protected = cfg.protected.map(String);
+      out.repos[path] = r;
+    }
+  }
   if (raw.hosts && typeof raw.hosts === "object") out.hosts = raw.hosts;
   return out;
+}
+
+/** Per-repo effective config: global defaults overlaid with the repo entry. */
+export function repoConfig(config, repoPath) {
+  const entry = config.repos?.[repoPath];
+  if (!entry) return config;
+  return {
+    ...config,
+    defaultBranch: entry.defaultBranch ?? config.defaultBranch,
+    protected: [...BUILTIN_PROTECTED, ...(entry.protected ?? []), ...(config.protected ?? [])],
+  };
 }
 
 export async function loadConfig({
