@@ -10,7 +10,10 @@ const pjoin = (...parts) => join(...parts).replaceAll("\\", "/");
 
 function withTmp(fn) {
   // Normalize so HOME-style env matches posix joins in the module under test.
-  const dir = join(tmpdir(), `reap-cfg-${Date.now()}-${Math.random().toString(36).slice(2)}`).replaceAll("\\", "/");
+  const dir = join(
+    tmpdir(),
+    `reap-cfg-${Date.now()}-${Math.random().toString(36).slice(2)}`,
+  ).replaceAll("\\", "/");
   mkdirSync(dir, { recursive: true });
   try {
     return fn(dir);
