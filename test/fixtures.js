@@ -8,7 +8,7 @@
 // created directory is registered for cleanup via cleanup()/cleanupAll().
 
 import { spawn } from "node:child_process";
-import { mkdirSync, mkdtempSync, rmSync, writeFileSync } from "node:fs";
+import { mkdirSync, mkdtempSync, realpathSync, rmSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 
@@ -72,7 +72,9 @@ export function git(args, opts = {}) {
 }
 
 function tmpDir(prefix) {
-  const dir = mkdtempSync(join(tmpdir(), prefix));
+  // realpath so paths match what git reports: on macOS the temp dir lives
+  // under /var/folders, which git canonicalizes to /private/var/folders.
+  const dir = realpathSync(mkdtempSync(join(tmpdir(), prefix)));
   createdDirs.add(dir);
   return dir;
 }

@@ -1,5 +1,5 @@
 import { describe, expect, test } from "bun:test";
-import { mkdirSync, mkdtempSync, symlinkSync } from "node:fs";
+import { mkdirSync, mkdtempSync, realpathSync, symlinkSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { discoverRepos } from "../src/discover.js";
@@ -12,7 +12,10 @@ import {
 } from "./fixtures.js";
 
 function tmpRoot() {
-  return mkdtempSync(join(tmpdir(), "reap-disc-"));
+  // realpath so expectations match what git reports: on macOS the temp
+  // dir lives under /var/folders, which git canonicalizes to
+  // /private/var/folders.
+  return realpathSync(mkdtempSync(join(tmpdir(), "reap-disc-")));
 }
 
 describe("discoverRepos", () => {
