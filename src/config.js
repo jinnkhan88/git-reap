@@ -2,7 +2,7 @@
 
 import { existsSync } from "node:fs";
 import { homedir } from "node:os";
-import { join, win32 } from "node:path";
+import { join as posixJoin, win32 } from "node:path";
 import { pathToFileURL } from "node:url";
 
 export const BUILTIN_PROTECTED = ["main", "master", "develop", "dev", "release/*"];
@@ -25,12 +25,14 @@ export function configPaths(env = process.env, platform) {
       dataDir: win32.join(localappdata, "git-reap"),
     };
   }
+  // XDG paths are posix-style on every platform (and tests force a platform
+  // explicitly), so join with posix semantics regardless of the host OS.
   const home = env.HOME ?? homedir();
-  const xdgConfig = env.XDG_CONFIG_HOME ?? join(home, ".config");
-  const xdgData = env.XDG_DATA_HOME ?? join(home, ".local", "share");
+  const xdgConfig = env.XDG_CONFIG_HOME ?? posixJoin(home, ".config");
+  const xdgData = env.XDG_DATA_HOME ?? posixJoin(home, ".local", "share");
   return {
-    configFile: join(xdgConfig, "git-reap", "config.toml"),
-    dataDir: join(xdgData, "git-reap"),
+    configFile: posixJoin(xdgConfig, "git-reap", "config.toml"),
+    dataDir: posixJoin(xdgData, "git-reap"),
   };
 }
 

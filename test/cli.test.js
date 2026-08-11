@@ -5,6 +5,7 @@ import { afterEach, beforeEach, describe, expect, test } from "bun:test";
 import { mkdtempSync, rmSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
+import { fileURLToPath } from "node:url";
 import {
   cleanup,
   git as fxGit,
@@ -16,8 +17,10 @@ import {
 async function runCli(args, { dataDir, root }) {
   const proc = Bun.spawn({
     cmd: ["bun", "run", "src/bin.js", ...args, "--root", root],
-    cwd: new URL("..", import.meta.url).pathname,
-    env: { ...process.env, XDG_DATA_HOME: dataDir },
+    // fileURLToPath, not .pathname: on Windows .pathname yields a leading
+    // "/D:/..." form that is not a valid spawn cwd.
+    cwd: fileURLToPath(new URL("..", import.meta.url)),
+    env: { ...process.env, XDG_DATA_HOME: dataDir, TMP: process.env.TMP, TEMP: process.env.TEMP },
     stdout: "pipe",
     stderr: "pipe",
   });

@@ -11,6 +11,7 @@ import {
   makeBareRepo,
   makeRepo,
   makeSandbox,
+  normPath,
   withActiveBranch,
   withDirtyWorktree,
   withGoneUnpushedCommits,
@@ -159,7 +160,7 @@ describe("withDirtyWorktree", () => {
     expect(status.trim()).not.toBe("");
     // The worktree is registered and has dirty-branch checked out.
     const { stdout: list } = await git(["worktree", "list", "--porcelain"], { cwd: repo });
-    expect(list).toContain(`worktree ${realpathSync(worktree)}`);
+    expect(list).toContain(`worktree ${normPath(realpathSync(worktree))}`);
     const { stdout: head } = await git(["symbolic-ref", "HEAD"], { cwd: worktree });
     expect(head.trim()).toBe("refs/heads/dirty-branch");
   });
@@ -170,8 +171,8 @@ describe("withLinkedWorktree", () => {
     const repo = await makeRepo();
     const { worktree } = await withLinkedWorktree(repo);
     const { stdout: list } = await git(["worktree", "list", "--porcelain"], { cwd: repo });
-    expect(list).toContain(`worktree ${realpathSync(repo)}`);
-    expect(list).toContain(`worktree ${realpathSync(worktree)}`);
+    expect(list).toContain(`worktree ${normPath(realpathSync(repo))}`);
+    expect(list).toContain(`worktree ${normPath(realpathSync(worktree))}`);
     // Same common dir (--path-format=absolute keeps it join-free).
     const { stdout: a } = await git(["rev-parse", "--path-format=absolute", "--git-common-dir"], {
       cwd: repo,

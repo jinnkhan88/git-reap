@@ -15,6 +15,12 @@ jobs:
     steps:
       - uses: actions/checkout@v4
       - uses: oven-sh/setup-bun@v2
+      - name: Use long temp path (Windows 8.3 short names break fixtures)
+        if: runner.os == 'Windows'
+        shell: bash
+        run: |
+          echo "TMP=${{ runner.temp }}" >> "$GITHUB_ENV"
+          echo "TEMP=${{ runner.temp }}" >> "$GITHUB_ENV"
       - run: bun install --frozen-lockfile
       - run: bunx biome check .
       - run: bun test

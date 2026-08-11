@@ -72,11 +72,18 @@ export function git(args, opts = {}) {
 }
 
 function tmpDir(prefix) {
-  // realpath so paths match what git reports: on macOS the temp dir lives
-  // under /var/folders, which git canonicalizes to /private/var/folders.
-  const dir = realpathSync(mkdtempSync(join(tmpdir(), prefix)));
+  // Normalize to git-style forward slashes so expectations match what the
+  // tool reports: git canonicalizes on every platform (and on macOS the
+  // temp dir under /var/folders resolves to /private/var/folders).
+  const dir = realpathSync(mkdtempSync(join(tmpdir(), prefix))).replaceAll("\\", "/");
   createdDirs.add(dir);
   return dir;
+}
+
+// Convert any path to git-style forward slashes (git always reports paths
+// with "/" separators, even on Windows).
+export function normPath(p) {
+  return p.replaceAll("\\", "/");
 }
 
 // Remove one fixture-created directory (repo, worktree, remote, or sandbox
@@ -101,7 +108,7 @@ async function commitFile(repo, name, content, message, { env } = {}) {
 
 // A bare-minimum normal repo on default branch `main` with one commit.
 export async function makeRepo({ defaultBranch = "main", dir } = {}) {
-  const repo = dir ?? tmpDir("reap-fix-repo-");
+  const repo = normPath(dir ?? tmpDir("reap-fix-repo-"));
   mkdirSync(repo, { recursive: true });
   await git(["init", "-b", defaultBranch, repo]);
   await commitFile(repo, "README.md", "# git-reap fixture\n", "initial commit");
@@ -110,7 +117,7 @@ export async function makeRepo({ defaultBranch = "main", dir } = {}) {
 
 // A bare repo (git init --bare) in a fresh tmpdir. Discovery must skip these.
 export async function makeBareRepo({ dir } = {}) {
-  const bare = dir ?? tmpDir("reap-fix-bare-");
+  const bare = normPath(dir ?? tmpDir("reap-fix-bare-"));
   mkdirSync(bare, { recursive: true });
   await git(["init", "--bare", bare]);
   return bare;

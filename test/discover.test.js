@@ -8,15 +8,19 @@ import {
   makeBareRepo,
   makeRepo,
   makeSandbox,
+  normPath,
   withLinkedWorktree,
 } from "./fixtures.js";
 
 function tmpRoot() {
-  // realpath so expectations match what git reports: on macOS the temp
-  // dir lives under /var/folders, which git canonicalizes to
-  // /private/var/folders.
-  return realpathSync(mkdtempSync(join(tmpdir(), "reap-disc-")));
+  // realpath + forward slashes so expectations match what git reports:
+  // on macOS /var/folders resolves to /private/var/folders, and git always
+  // reports "/" separators even on Windows.
+  return normPath(realpathSync(mkdtempSync(join(tmpdir(), "reap-disc-"))));
 }
+
+// join() that normalizes to git-style forward slashes, for expected paths.
+const pjoin = (...parts) => normPath(join(...parts));
 
 describe("discoverRepos", () => {
   test("finds repos under a root; bare repos reported as skipped", async () => {
@@ -33,7 +37,7 @@ describe("discoverRepos", () => {
 
   test("records linked worktrees via plumbing even outside the root", async () => {
     const root = tmpRoot();
-    const repo = await makeRepo({ dir: join(root, "main-repo") });
+    const repo = await makeRepo({ dir: pjoin(root, "main-repo") });
     const { worktree } = await withLinkedWorktree(repo);
     const { repos } = await discoverRepos([root]);
     expect(repos).toHaveLength(1);
@@ -44,9 +48,9 @@ describe("discoverRepos", () => {
 
   test("dedupes when both main repo and linked worktree are under the root", async () => {
     const root = tmpRoot();
-    const repo = await makeRepo({ dir: join(root, "main-repo") });
+    const repo = await makeRepo({ dir: pjoin(root, "main-repo") });
     await fxGit(["branch", "wt-branch"], { cwd: repo });
-    const wt = join(root, "wt-copy");
+    const wt = pjoin(root, "wt-copy");
     await fxGit(["worktree", "add", wt, "wt-branch"], { cwd: repo });
     const { repos } = await discoverRepos([root]);
     const matches = repos.filter((r) => r.worktrees.includes(repo) || r.worktrees.includes(wt));
@@ -56,34 +60,34 @@ describe("discoverRepos", () => {
 
   test("does not descend into junk dirs", async () => {
     const root = tmpRoot();
-    const junk = join(root, "node_modules");
+    const junk = pjoin(root, "node_modules");
     mkdirSync(junk, { recursive: true });
-    await makeRepo({ dir: join(junk, "hidden-repo") });
+    await makeRepo({ dir: pjoin(junk, "hidden-repo") });
     const { repos } = await discoverRepos([root]);
-    expect(repos.map((r) => r.path)).not.toContain(join(junk, "hidden-repo"));
+    expect(repos.map((r) => r.path)).not.toContain(pjoin(junk, "hidden-repo"));
   });
 
   test("prunes heavy tool/cache dotdirs but still searches config/state dirs", async () => {
     const root = tmpRoot();
     for (const dotdir of [".bun", ".cache"]) {
-      mkdirSync(join(root, dotdir), { recursive: true });
-      await makeRepo({ dir: join(root, dotdir, "hidden-repo") });
+      mkdirSync(pjoin(root, dotdir), { recursive: true });
+      await makeRepo({ dir: pjoin(root, dotdir, "hidden-repo") });
     }
     // these CAN legitimately hold repos and must stay in the walk
-    await makeRepo({ dir: join(root, ".config", "nvim") });
-    await makeRepo({ dir: join(root, ".dotfiles", "home", "projects", "notes") });
+    await makeRepo({ dir: pjoin(root, ".config", "nvim") });
+    await makeRepo({ dir: pjoin(root, ".dotfiles", "home", "projects", "notes") });
     const { repos } = await discoverRepos([root]);
     const paths = repos.map((r) => r.path);
-    expect(paths).toContain(join(root, ".config", "nvim"));
-    expect(paths).toContain(join(root, ".dotfiles", "home", "projects", "notes"));
+    expect(paths).toContain(pjoin(root, ".config", "nvim"));
+    expect(paths).toContain(pjoin(root, ".dotfiles", "home", "projects", "notes"));
     expect(paths.some((p) => p.includes(".bun"))).toBe(false);
     expect(paths.some((p) => p.includes(".cache"))).toBe(false);
   });
 
   test("submodule checkouts surface as their real directory, never a .git path", async () => {
     const root = tmpRoot();
-    const sub = await makeRepo({ dir: join(root, "sub-src") });
-    const parent = await makeRepo({ dir: join(root, "parent") });
+    const sub = await makeRepo({ dir: pjoin(root, "sub-src") });
+    const parent = await makeRepo({ dir: pjoin(root, "parent") });
     // NB: "vendor/" is a junk dir by design — submodules there are not walked
     await fxGit(["-c", "protocol.file.allow=always", "submodule", "add", sub, "libs/sub"], {
       cwd: parent,
@@ -93,29 +97,29 @@ describe("discoverRepos", () => {
     // git reports a submodule's worktree as its .git/modules/<name> gitdir;
     // discover must map that back to the real checkout directory
     expect(paths.every((p) => !p.includes("/.git/"))).toBe(true);
-    expect(paths).toContain(join(parent, "libs", "sub"));
+    expect(paths).toContain(pjoin(parent, "libs", "sub"));
   });
 
   test("does not follow symlinked directories", async () => {
     const root = tmpRoot();
     const outside = await makeRepo();
-    symlinkSync(outside, join(root, "linked-outside"));
+    symlinkSync(outside, pjoin(root, "linked-outside"));
     const { repos } = await discoverRepos([root]);
-    expect(repos.map((r) => r.path)).not.toContain(join(root, "linked-outside"));
+    expect(repos.map((r) => r.path)).not.toContain(pjoin(root, "linked-outside"));
   });
 
   test("respects depth limit", async () => {
     const root = tmpRoot();
     let deep = root;
     for (let i = 0; i < 8; i++) {
-      deep = join(deep, `d${i}`);
+      deep = pjoin(deep, `d${i}`);
       mkdirSync(deep, { recursive: true });
     }
-    await makeRepo({ dir: join(deep, "deep-repo") });
+    await makeRepo({ dir: pjoin(deep, "deep-repo") });
     const shallow = await discoverRepos([root], { maxDepth: 4 });
-    expect(shallow.repos.map((r) => r.path)).not.toContain(join(deep, "deep-repo"));
+    expect(shallow.repos.map((r) => r.path)).not.toContain(pjoin(deep, "deep-repo"));
     const deepEnough = await discoverRepos([root], { maxDepth: 12 });
-    expect(deepEnough.repos.map((r) => r.path)).toContain(join(deep, "deep-repo"));
+    expect(deepEnough.repos.map((r) => r.path)).toContain(pjoin(deep, "deep-repo"));
   });
 
   test("missing root is reported, not fatal", async () => {
