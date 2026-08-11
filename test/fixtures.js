@@ -9,7 +9,7 @@
 
 import { spawn } from "node:child_process";
 import { mkdirSync, mkdtempSync, rmSync, writeFileSync } from "node:fs";
-import { devNull, tmpdir } from "node:os";
+import { tmpdir } from "node:os";
 import { join } from "node:path";
 
 const FIXTURE_IDENTITY = [
@@ -21,6 +21,12 @@ const FIXTURE_IDENTITY = [
 
 const createdDirs = new Set();
 
+// Isolated global config: an empty real file. On Windows the null device
+// ("\\.\nul") cannot be opened as a config path by git, so we can't use
+// os.devNull here — an empty temp file isolates identically everywhere.
+const fixtureGlobalConfig = join(tmpdir(), `git-reap-fixture-config-${process.pid}`);
+writeFileSync(fixtureGlobalConfig, "");
+
 function run(cmd, args, { cwd, env = {} } = {}) {
   return new Promise((resolve, reject) => {
     const child = spawn(cmd, args, {
@@ -31,7 +37,7 @@ function run(cmd, args, { cwd, env = {} } = {}) {
         GIT_CONFIG_NOSYSTEM: "1",
         // Isolate from the developer's global gitconfig (init.defaultBranch,
         // insteadOf rewrites, etc.) without touching it on disk.
-        GIT_CONFIG_GLOBAL: devNull,
+        GIT_CONFIG_GLOBAL: fixtureGlobalConfig,
         ...env,
       },
       stdio: ["ignore", "pipe", "pipe"],
