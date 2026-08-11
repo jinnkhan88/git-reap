@@ -22,9 +22,6 @@ jobs:
           - os: ubuntu-latest
             target: bun-linux-arm64
             artifact: git-reap-linux-arm64
-          - os: macos-13
-            target: bun-darwin-x64
-            artifact: git-reap-darwin-x64
           - os: macos-latest
             target: bun-darwin-arm64
             artifact: git-reap-darwin-arm64
